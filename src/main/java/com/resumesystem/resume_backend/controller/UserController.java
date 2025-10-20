@@ -17,9 +17,11 @@ public class UserController {
 
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@RequestBody UserRegisterRequest request) {
-        if(userService.loginUser(request.getEmail(), request.getPassword()).isPresent()){
+        // Check if email already exists
+        if (userService.getUserByEmail(request.getEmail()).isPresent()) {
             return new ResponseEntity<>("Error: Email Already Exists!", HttpStatus.BAD_REQUEST);
         }
+
         UserResponse newUser = userService.registerUser(request);
         return new ResponseEntity<>(newUser, HttpStatus.CREATED);
     }

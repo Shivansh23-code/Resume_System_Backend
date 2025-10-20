@@ -7,8 +7,10 @@ import com.resumesystem.resume_backend.model.User;
 import com.resumesystem.resume_backend.repository.ResumeRepository;
 import com.resumesystem.resume_backend.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import java.util.Optional;
 
 @Service
@@ -20,12 +22,16 @@ public class UserServiceImpl implements UserService {
     @Autowired
     private ResumeRepository resumeRepository;
 
+    @Autowired
+    private PasswordEncoder passwordEncoder; // Inject PasswordEncoder
+
     @Override
     @Transactional
     public UserResponse registerUser(UserRegisterRequest request) {
         User user = new User();
         user.setEmail(request.getEmail());
-        user.setPassword(request.getPassword());
+        // Encrypt password before saving
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setFirstName(request.getFirstName());
         user.setLastName(request.getLastName());
         User newUser = userRepository.save(user);
@@ -48,7 +54,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public Optional<UserResponse> loginUser(String email, String password) {
         return userRepository.findByEmail(email)
-                .filter(user -> user.getPassword().equals(password))
+                .filter(user -> passwordEncoder.matches(password, user.getPassword())) // Check hashed password
                 .map(user -> {
                     UserResponse response = new UserResponse();
                     response.setId(user.getId());
@@ -58,4 +64,18 @@ public class UserServiceImpl implements UserService {
                     return response;
                 });
     }
+
+    @Override
+    public Optional<UserResponse> getUserByEmail(String email) {
+        return userRepository.findByEmail(email)
+                .map(user -> {
+                    UserResponse response = new UserResponse();
+                    response.setId(user.getId());
+                    response.setEmail(user.getEmail());
+                    response.setFirstName(user.getFirstName());
+                    response.setLastName(user.getLastName());
+                    return response;
+                });
+    }
+
 }
